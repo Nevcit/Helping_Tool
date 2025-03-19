@@ -1,0 +1,568 @@
+local v_u_1 = game:GetService("CollectionService")
+local v_u_2 = game:GetService("HttpService")
+local v3 = game:GetService("GuiService")
+local v_u_4 = game:GetService("RunService")
+local v_u_5 = game:GetService("UserInputService")
+local v_u_6 = game:GetService("TweenService")
+local v_u_7 = game:GetService("Debris")
+local v_u_8 = game:GetService("Workspace")
+local v_u_9 = game:GetService("ReplicatedStorage")
+local v10 = game:GetService("Players")
+local v_u_11 = v_u_9:WaitForChild("Miscs")
+local v12 = v_u_9:WaitForChild("Modules")
+local v13 = v_u_9:WaitForChild("Events")
+local v14 = v_u_9:WaitForChild("Remotes")
+local v_u_15 = script.Parent
+local v_u_16 = v_u_15:WaitForChild("AnimationFolder")
+local v17 = v_u_15:WaitForChild("ValueFolder")
+local v_u_18 = v_u_8.CurrentCamera
+local v_u_19 = v10.LocalPlayer
+local v_u_20 = v_u_19.Character
+if not (v_u_20 and v_u_20.Parent) then
+	v_u_20 = v_u_19.CharacterAdded:Wait()
+end
+local v_u_21 = v_u_20:WaitForChild("Humanoid")
+local v_u_22 = v_u_20:WaitForChild("HumanoidRootPart")
+local v_u_23 = v_u_20:WaitForChild("Head")
+local v_u_24 = v_u_20:FindFirstChild("Torso") or v_u_20:FindFirstChild("UpperTorso")
+local v_u_25 = v_u_20:FindFirstChild("Left Arm") or v_u_20:FindFirstChild("LeftHand")
+local v_u_26 = v_u_20:FindFirstChild("Right Arm") or v_u_20:FindFirstChild("RightHand")
+local v_u_27 = v_u_19:WaitForChild("PlayerGui")
+local v_u_28 = v_u_19:GetMouse()
+local v_u_29 = v_u_15:WaitForChild("GunServer"):WaitForChild("ChangeMagAndAmmo")
+local v30 = script:WaitForChild("MarkerEvent")
+local v_u_31 = script:WaitForChild("GunGUI")
+local v_u_32 = {
+	["AimButton"] = v_u_31.MobileButtons.AimButton,
+	["FireButton"] = v_u_31.MobileButtons.FireButton,
+	["SubFireButton"] = v_u_31.SubFireButton,
+	["HoldDownButton"] = v_u_31.MobileButtons.HoldDownButton,
+	["InspectButton"] = v_u_31.MobileButtons.InspectButton,
+	["ReloadButton"] = v_u_31.MobileButtons.ReloadButton,
+	["SwitchButton"] = v_u_31.MobileButtons.SwitchButton,
+	["MeleeButton"] = v_u_31.MobileButtons.MeleeButton,
+	["AltButton"] = v_u_31.MobileButtons.AltButton
+}
+local v_u_33
+if v_u_5.TouchEnabled then
+	v_u_33 = v_u_27:WaitForChild("TouchGui"):WaitForChild("TouchControlFrame"):WaitForChild("JumpButton")
+else
+	v_u_33 = nil
+end
+local v_u_34 = v_u_11.GunVisualEffects
+local v_u_35 = v_u_11.Scanners
+local v_u_36 = require(v12.SmokeTrail)
+local v_u_37 = require(v12.SettingModifier)
+local v_u_38 = require(v12.DamageModule)
+local v39 = require(v12.Utilities)
+local v_u_40 = v39.Thread
+local v_u_41 = v39.ProjectileMotion
+local v_u_42 = v39.Math
+local v43 = v39.Spring
+local v_u_44 = v39.CloneTable
+local v_u_45 = v39.RotatedRegion3
+local v_u_46 = v39.RaycastHitboxV4
+local v47 = v39.DataPacket
+local v_u_48, _ = unpack(v47)
+local v_u_49 = v13.gunEvent
+local _ = v13.gunFunction
+local v_u_50 = v13.viewmodelEvent
+local v_u_51 = v13.viewmodelFunction
+local v_u_52 = v14.InflictTarget
+local v_u_53 = v14.ShatterGlass
+local v_u_54 = v14.VisualizeBeam
+local v_u_55 = v14.VisibleMuzzle
+local v_u_56 = v_u_2:GenerateGUID()
+local v_u_57 = "UpdateGun_" .. v_u_56
+local v_u_58 = v_u_31.IgnoreGuiInset and v3:GetGuiInset() or Vector2.new(0, 0)
+local v_u_59 = v_u_31.AbsoluteSize.Y + v_u_58.Y + 100
+local v_u_60 = script:WaitForChild("TargetMarker")
+local v_u_61 = nil
+local v_u_62 = 0
+local v_u_63 = {
+	["Equipped"] = false,
+	["ActuallyEquipped"] = false,
+	["Enabled"] = true,
+	["Down"] = false,
+	["HoldDown"] = false,
+	["Reloading"] = false,
+	["CanCancelReload"] = false,
+	["AimDown"] = false,
+	["Scoping"] = false,
+	["Inspecting"] = false,
+	["Charging"] = false,
+	["Charged"] = false,
+	["Overheated"] = false,
+	["CanBeCooledDown"] = true,
+	["Switching"] = false,
+	["Alting"] = false,
+	["AlreadyHit"] = false,
+	["CanEmit"] = false,
+	["CurrentFireRate"] = 0,
+	["ShootCounts"] = 0,
+	["CurrentRate"] = 0,
+	["LastRate"] = 0,
+	["ElapsedTime"] = 0,
+	["CasingCount"] = 0,
+	["LastUpdate"] = nil,
+	["LastUpdate2"] = nil,
+	["VMAnimations"] = {},
+	["VMKeyframes"] = {},
+	["VMKeyframeConnections"] = {},
+	["Radar"] = nil,
+	["Beam"] = nil,
+	["Attach0"] = nil,
+	["Attach1"] = nil,
+	["Misc"] = nil,
+	["LaserTrail"] = nil,
+	["Hitbox"] = nil,
+	["Hitbox2"] = nil,
+	["VMHitbox"] = nil,
+	["VMHitbox2"] = nil,
+	["BoltSegments"] = {},
+	["Animations"] = {},
+	["SettingModules"] = {},
+	["Keyframes"] = {},
+	["KeyframeConnections"] = {},
+	["Casings"] = {},
+	["HitHumanoids"] = {},
+	["MeleeHitHumanoids"] = {},
+	["BlockedModels"] = {},
+	["InitialSensitivity"] = v_u_5.MouseDeltaSensitivity,
+	["Motor6DInstances"] = {},
+	["GripId"] = 0,
+	["DefaultC0"] = nil,
+	["DefaultC1"] = nil,
+	["Handle2"] = nil,
+	["Grip2"] = nil
+}
+local v_u_64 = {}
+local v_u_65 = { v_u_18, v_u_15, v_u_20 }
+local v_u_66 = OverlapParams.new()
+v_u_66.FilterType = Enum.RaycastFilterType.Blacklist
+v_u_66.FilterDescendantsInstances = v_u_65
+v_u_66.MaxParts = 0
+v_u_66.CollisionGroup = "Default"
+local v_u_67 = RaycastParams.new()
+v_u_67.FilterType = Enum.RaycastFilterType.Blacklist
+v_u_67.FilterDescendantsInstances = v_u_65
+v_u_67.IgnoreWater = true
+local v_u_68 = v_u_15:WaitForChild("Setting")
+local v_u_69 = require(v_u_68)
+local v_u_70 = require(v_u_68:WaitForChild("ConditionableGunMods"))
+local v_u_71 = require(v_u_68:WaitForChild("CanShootConditions"))
+local v_u_72 = require(v_u_68:WaitForChild("OnClientShootEvents"))
+if v_u_69.DualWeldEnabled then
+	v_u_63.Handle2 = v_u_15:WaitForChild("Handle2", 2)
+	if v_u_63.Handle2 == nil and v_u_69.DualWeldEnabled then
+		error("\"Dual\" setting is enabled but \"Handle2\" is missing!")
+	end
+end
+local v_u_73 = {}
+for _, v74 in pairs(v_u_68:GetChildren()) do
+	if v74.Name ~= "CanShootConditions" and (v74.Name ~= "ConditionableGunMods" and v74.Name ~= "OnClientShootEvents") then
+		table.insert(v_u_73, v74)
+	end
+end
+table.sort(v_u_73, function(p75, p76)
+	local v77 = p75.Name
+	local v78 = tonumber(v77)
+	local v79 = p76.Name
+	return v78 < tonumber(v79)
+end)
+for v80, v81 in ipairs(v_u_73) do
+	local v82 = v_u_63.SettingModules
+	local v83 = require
+	table.insert(v82, v83(v81))
+	local v84 = {
+		["Mag"] = v17[v80].Mag.Value,
+		["Ammo"] = v17[v80].Ammo.Value,
+		["Heat"] = 0,
+		["MaxAmmo"] = v_u_63.SettingModules[v80].MaxAmmo,
+		["ElapsedCooldownTime"] = 0,
+		["ChargeLevel"] = 0,
+		["FireModes"] = v_u_63.SettingModules[v80].FireModes,
+		["FireMode"] = 1,
+		["ShotsForDepletion"] = 0,
+		["ShotID"] = 0,
+		["HandleIndex"] = 1,
+		["FireAnimIndex"] = 1,
+		["LastFireAnimIndex"] = 1,
+		["AimFireAnimIndex"] = 1,
+		["AimLastFireAnimIndex"] = 1,
+		["ShotgunPumpinAnimIndex"] = 1,
+		["VMFireAnimIndex"] = 1,
+		["VMLastFireAnimIndex"] = 1,
+		["VMShotgunPumpinAnimIndex"] = 1
+	}
+	local v85 = v_u_63.SettingModules[v80].ChargeLevelCap
+	v84.ChargeLevelCap = math.clamp(v85, 1, 3)
+	table.insert(v_u_64, v84)
+end
+for v86, v87 in ipairs(v_u_16:GetChildren()) do
+	local v88 = {}
+	local v89 = v87:WaitForChild("ThirdPerson")
+	if v_u_63.SettingModules[v86].EquippedAnimationID ~= nil then
+		v88.EquippedAnim = v89:WaitForChild("EquippedAnim")
+		v88.EquippedAnim = v_u_21:LoadAnimation(v88.EquippedAnim)
+	end
+	if v_u_63.SettingModules[v86].EmptyEquippedAnimationID ~= nil then
+		v88.EmptyEquippedAnim = v89:WaitForChild("EmptyEquippedAnim")
+		v88.EmptyEquippedAnim = v_u_21:LoadAnimation(v88.EmptyEquippedAnim)
+	end
+	if v_u_63.SettingModules[v86].IdleAnimationID ~= nil then
+		v88.IdleAnim = v89:WaitForChild("IdleAnim")
+		v88.IdleAnim = v_u_21:LoadAnimation(v88.IdleAnim)
+	end
+	if v_u_63.SettingModules[v86].EmptyIdleAnimationID ~= nil then
+		v88.EmptyIdleAnim = v89:WaitForChild("EmptyIdleAnim")
+		v88.EmptyIdleAnim = v_u_21:LoadAnimation(v88.EmptyIdleAnim)
+	end
+	if #v_u_63.SettingModules[v86].FireAnimations > 0 then
+		local v90 = v89:WaitForChild("FireAnimations")
+		v88.FireAnims = {}
+		for v91, v92 in ipairs(v_u_63.SettingModules[v86].FireAnimations) do
+			if v92.FireAnimationID ~= nil then
+				local v93 = v90:WaitForChild("FireAnim_" .. v91)
+				local v94 = v88.FireAnims
+				local v95 = { v_u_21:LoadAnimation(v93), v92.FireAnimationSpeed }
+				table.insert(v94, v95)
+			end
+		end
+	end
+	if #v_u_63.SettingModules[v86].LastFireAnimations > 0 then
+		local v96 = v89:WaitForChild("LastFireAnimations")
+		v88.LastFireAnims = {}
+		for v97, v98 in ipairs(v_u_63.SettingModules[v86].LastFireAnimations) do
+			if v98.LastFireAnimationID ~= nil then
+				local v99 = v96:WaitForChild("LastFireAnim_" .. v97)
+				local v100 = v88.LastFireAnims
+				local v101 = { v_u_21:LoadAnimation(v99), v98.LastFireAnimationSpeed }
+				table.insert(v100, v101)
+			end
+		end
+	end
+	if #v_u_63.SettingModules[v86].ShotgunPumpinAnimations > 0 then
+		local v102 = v89:WaitForChild("ShotgunPumpinAnimations")
+		v88.ShotgunPumpinAnims = {}
+		for v103, v104 in ipairs(v_u_63.SettingModules[v86].ShotgunPumpinAnimations) do
+			if v104.ShotgunPumpinAnimationID ~= nil then
+				local v105 = v102:WaitForChild("ShotgunPumpinAnim_" .. v103)
+				local v106 = v88.ShotgunPumpinAnims
+				local v107 = { v_u_21:LoadAnimation(v105), v104.ShotgunPumpinAnimationSpeed }
+				table.insert(v106, v107)
+			end
+		end
+	end
+	if v_u_63.SettingModules[v86].ShotgunClipinAnimationID ~= nil then
+		v88.ShotgunClipinAnim = v89:WaitForChild("ShotgunClipinAnim")
+		v88.ShotgunClipinAnim = v_u_21:LoadAnimation(v88.ShotgunClipinAnim)
+	end
+	if v_u_63.SettingModules[v86].ReloadAnimationID ~= nil then
+		v88.ReloadAnim = v89:WaitForChild("ReloadAnim")
+		v88.ReloadAnim = v_u_21:LoadAnimation(v88.ReloadAnim)
+	end
+	if v_u_63.SettingModules[v86].HoldDownAnimationID ~= nil then
+		v88.HoldDownAnim = v89:WaitForChild("HoldDownAnim")
+		v88.HoldDownAnim = v_u_21:LoadAnimation(v88.HoldDownAnim)
+	end
+	if v_u_63.SettingModules[v86].AimIdleAnimationID ~= nil then
+		v88.AimIdleAnim = v89:WaitForChild("AimIdleAnim")
+		v88.AimIdleAnim = v_u_21:LoadAnimation(v88.AimIdleAnim)
+	end
+	if v_u_63.SettingModules[v86].EmptyAimIdleAnimationID ~= nil then
+		v88.EmptyAimIdleAnim = v89:WaitForChild("EmptyAimIdleAnim")
+		v88.EmptyAimIdleAnim = v_u_21:LoadAnimation(v88.EmptyAimIdleAnim)
+	end
+	if #v_u_63.SettingModules[v86].AimFireAnimations > 0 then
+		local v108 = v89:WaitForChild("AimFireAnimations")
+		v88.AimFireAnims = {}
+		for v109, v110 in ipairs(v_u_63.SettingModules[v86].AimFireAnimations) do
+			if v110.AimFireAnimationID ~= nil then
+				local v111 = v108:WaitForChild("AimFireAnim_" .. v109)
+				local v112 = v88.AimFireAnims
+				local v113 = { v_u_21:LoadAnimation(v111), v110.AimFireAnimationSpeed }
+				table.insert(v112, v113)
+			end
+		end
+	end
+	if #v_u_63.SettingModules[v86].AimLastFireAnimations > 0 then
+		local v114 = v89:WaitForChild("AimLastFireAnimations")
+		v88.AimLastFireAnims = {}
+		for v115, v116 in ipairs(v_u_63.SettingModules[v86].AimLastFireAnimations) do
+			if v116.AimFireAnimationID ~= nil then
+				local v117 = v114:WaitForChild("AimLastFireAnim_" .. v115)
+				local v118 = v88.AimLastFireAnims
+				local v119 = { v_u_21:LoadAnimation(v117), v116.AimLastFireAnimationSpeed }
+				table.insert(v118, v119)
+			end
+		end
+	end
+	if v_u_63.SettingModules[v86].AimChargingAnimationID ~= nil then
+		v88.AimChargingAnim = v89:WaitForChild("AimChargingAnim")
+		v88.AimChargingAnim = v_u_21:LoadAnimation(v88.AimChargingAnim)
+	end
+	if v_u_63.SettingModules[v86].TacticalReloadAnimationEnabled and v_u_63.SettingModules[v86].TacticalReloadAnimationID ~= nil then
+		v88.TacticalReloadAnim = v89:WaitForChild("TacticalReloadAnim")
+		v88.TacticalReloadAnim = v_u_21:LoadAnimation(v88.TacticalReloadAnim)
+	end
+	if v_u_63.SettingModules[v86].InspectAnimationEnabled and v_u_63.SettingModules[v86].InspectAnimationID ~= nil then
+		v88.InspectAnim = v89:WaitForChild("InspectAnim")
+		v88.InspectAnim = v_u_21:LoadAnimation(v88.InspectAnim)
+	end
+	if v_u_63.SettingModules[v86].InspectAnimationEnabled and v_u_63.SettingModules[v86].EmptyInspectAnimationID ~= nil then
+		v88.EmptyInspectAnim = v89:WaitForChild("EmptyInspectAnim")
+		v88.EmptyInspectAnim = v_u_21:LoadAnimation(v88.EmptyInspectAnim)
+	end
+	if v_u_63.SettingModules[v86].ShotgunReload and (v_u_63.SettingModules[v86].PreShotgunReload and v_u_63.SettingModules[v86].PreShotgunReloadAnimationID ~= nil) then
+		v88.PreShotgunReloadAnim = v89:WaitForChild("PreShotgunReloadAnim")
+		v88.PreShotgunReloadAnim = v_u_21:LoadAnimation(v88.PreShotgunReloadAnim)
+	end
+	if v_u_63.SettingModules[v86].MinigunRevUpAnimationID ~= nil then
+		v88.MinigunRevUpAnim = v89:WaitForChild("MinigunRevUpAnim")
+		v88.MinigunRevUpAnim = v_u_21:LoadAnimation(v88.MinigunRevUpAnim)
+	end
+	if v_u_63.SettingModules[v86].MinigunRevDownAnimationID ~= nil then
+		v88.MinigunRevDownAnim = v89:WaitForChild("MinigunRevDownAnim")
+		v88.MinigunRevDownAnim = v_u_21:LoadAnimation(v88.MinigunRevDownAnim)
+	end
+	if v_u_63.SettingModules[v86].ChargingAnimationEnabled and v_u_63.SettingModules[v86].ChargingAnimationID ~= nil then
+		v88.ChargingAnim = v89:WaitForChild("ChargingAnim")
+		v88.ChargingAnim = v_u_21:LoadAnimation(v88.ChargingAnim)
+	end
+	if v_u_63.SettingModules[v86].SelectiveFireEnabled and v_u_63.SettingModules[v86].SwitchAnimationID ~= nil then
+		v88.SwitchAnim = v89:WaitForChild("SwitchAnim")
+		v88.SwitchAnim = v_u_21:LoadAnimation(v88.SwitchAnim)
+	end
+	if v_u_63.SettingModules[v86].BatteryEnabled and v_u_63.SettingModules[v86].OverheatAnimationID ~= nil then
+		v88.OverheatAnim = v89:WaitForChild("OverheatAnim")
+		v88.OverheatAnim = v_u_21:LoadAnimation(v88.OverheatAnim)
+	end
+	if v_u_63.SettingModules[v86].MeleeAttackEnabled and v_u_63.SettingModules[v86].MeleeAttackAnimationID ~= nil then
+		v88.MeleeAttackAnim = v89:WaitForChild("MeleeAttackAnim")
+		v88.MeleeAttackAnim = v_u_21:LoadAnimation(v88.MeleeAttackAnim)
+	end
+	if v_u_69.AltFire and v_u_63.SettingModules[v86].AltAnimationID ~= nil then
+		v88.AltAnim = v89:WaitForChild("AltAnim")
+		v88.AltAnim = v_u_21:LoadAnimation(v88.AltAnim)
+	end
+	if v_u_63.SettingModules[v86].LaserBeamStartupAnimationID ~= nil then
+		v88.LaserBeamStartupAnim = v89:WaitForChild("LaserBeamStartupAnim")
+		v88.LaserBeamStartupAnim = v_u_21:LoadAnimation(v88.LaserBeamStartupAnim)
+	end
+	if v_u_63.SettingModules[v86].LaserBeamLoopAnimationID ~= nil then
+		v88.LaserBeamLoopAnim = v89:WaitForChild("LaserBeamLoopAnim")
+		v88.LaserBeamLoopAnim = v_u_21:LoadAnimation(v88.LaserBeamLoopAnim)
+	end
+	if v_u_63.SettingModules[v86].LaserBeamStopAnimationID ~= nil then
+		v88.LaserBeamStopAnim = v89:WaitForChild("LaserBeamStopAnim")
+		v88.LaserBeamStopAnim = v_u_21:LoadAnimation(v88.LaserBeamStopAnim)
+	end
+	local v120 = v_u_63.Animations
+	table.insert(v120, v88)
+end
+local v_u_121 = 1
+local v_u_122 = v_u_63.SettingModules[v_u_121]
+local v_u_123 = v_u_64[v_u_121]
+local v_u_124 = v_u_63.Animations[v_u_121]
+local v_u_125 = v_u_31.Crosshair[v_u_121]
+for _, v126 in pairs(v_u_31.Crosshair:GetChildren()) do
+	if v126:IsA("CanvasGroup") then
+		local v127 = v126.Name
+		v126.Visible = tonumber(v127) == v_u_121
+	end
+end
+v_u_63.ShootCounts = v_u_122.ShootCounts
+local v_u_128 = v_u_69.UniversalAmmoEnabled and {
+	["Ammo"] = v17.Ammo.Value,
+	["MaxAmmo"] = v_u_69.Ammo
+} or v_u_123
+local v_u_129 = v_u_15:FindFirstChild(v_u_122.Handles[1], true)
+local v_u_130
+if #v_u_124.AimFireAnims > 0 then
+	v_u_130 = v_u_124.AimFireAnims[1][1] or nil
+else
+	v_u_130 = nil
+end
+local v_u_131
+if #v_u_124.AimFireAnims > 0 then
+	v_u_131 = v_u_124.AimFireAnims[1][2] or nil
+else
+	v_u_131 = nil
+end
+local v_u_132
+if #v_u_124.FireAnims > 0 then
+	v_u_132 = v_u_124.FireAnims[1][1] or nil
+else
+	v_u_132 = nil
+end
+local v_u_133
+if #v_u_124.FireAnims > 0 then
+	v_u_133 = v_u_124.FireAnims[1][2] or nil
+else
+	v_u_133 = nil
+end
+local v_u_134
+if #v_u_124.AimLastFireAnims > 0 then
+	v_u_134 = v_u_124.AimLastFireAnims[1][1] or nil
+else
+	v_u_134 = nil
+end
+local v_u_135
+if #v_u_124.AimLastFireAnims > 0 then
+	v_u_135 = v_u_124.AimLastFireAnims[1][2] or nil
+else
+	v_u_135 = nil
+end
+local v_u_136
+if #v_u_124.LastFireAnims > 0 then
+	v_u_136 = v_u_124.LastFireAnims[1][1] or nil
+else
+	v_u_136 = nil
+end
+local v_u_137
+if #v_u_124.LastFireAnims > 0 then
+	v_u_137 = v_u_124.LastFireAnims[1][2] or nil
+else
+	v_u_137 = nil
+end
+local v_u_138
+if #v_u_124.ShotgunPumpinAnims > 0 then
+	v_u_138 = v_u_124.ShotgunPumpinAnims[1][1] or nil
+else
+	v_u_138 = nil
+end
+local v_u_139
+if #v_u_124.ShotgunPumpinAnims > 0 then
+	v_u_139 = v_u_124.ShotgunPumpinAnims[1][2] or nil
+else
+	v_u_139 = nil
+end
+local v_u_140 = nil
+local v_u_141 = nil
+local v_u_142 = nil
+local v_u_143 = nil
+local v_u_144 = {}
+local v_u_145 = nil
+local v_u_146 = nil
+local v_u_147 = nil
+local v_u_148 = nil
+local v_u_149 = nil
+local v_u_150 = nil
+local v_u_151 = {}
+local v_u_152 = Instance.new("Attachment")
+v_u_152.Name = "CrosshairPointAttachment"
+local v_u_153 = v_u_34:FindFirstChild(v_u_122.LaserBeamEffect)
+if v_u_153 then
+	for _, v154 in pairs(v_u_153.HitEffect:GetChildren()) do
+		if v154.ClassName == "ParticleEmitter" then
+			local v155 = v154:Clone()
+			v155.Enabled = true
+			v155.Parent = v_u_152
+		end
+	end
+	for _, v156 in pairs(v_u_153.LaserBeams:GetChildren()) do
+		if v156.ClassName == "Beam" then
+			local v157 = v156:Clone()
+			table.insert(v_u_151, v157)
+		end
+	end
+end
+local function v_u_164(p158, p159)
+	-- upvalues: (ref) v_u_122, (copy) v_u_63
+	if p159 then
+		if v_u_122.VMAnimationKeyframes[p158.Name] then
+			local v160 = v_u_63.VMKeyframes
+			local v161 = { p158, v_u_122.VMAnimationKeyframes[p158.Name] }
+			table.insert(v160, v161)
+			return
+		end
+	elseif v_u_122.AnimationKeyframes[p158.Name] then
+		local v162 = v_u_63.Keyframes
+		local v163 = { p158, v_u_122.AnimationKeyframes[p158.Name] }
+		table.insert(v162, v163)
+	end
+end
+for _, v165 in pairs(v_u_124) do
+	if typeof(v165) == "table" then
+		for _, v166 in pairs(v165) do
+			v_u_164(v166[1])
+		end
+	else
+		v_u_164(v165)
+	end
+end
+if v_u_69.MagCartridge and (not v_u_122.BatteryEnabled and v_u_122.AmmoPerMag ~= (1 / 0)) then
+	for v167 = 1, v_u_122.AmmoPerMag do
+		local v168 = v_u_31.MagCartridge.UIGridLayout.Template:Clone()
+		v168.Name = v167
+		v168.LayoutOrder = v167
+		v168.Parent = v_u_31.MagCartridge
+	end
+end
+local v_u_169 = {
+	["Scope"] = v43.spring.new(Vector3.new(0, 200, 0)),
+	["Knockback"] = v43.spring.new((Vector3.new())),
+	["CameraSpring"] = v43.spring.new((Vector3.new())),
+	["CrossScale"] = v43.spring.new(0),
+	["CrossSpring"] = v43.spring.new(0)
+}
+v_u_169.Scope.s = v_u_122.ScopeSwaySpeed
+v_u_169.Scope.d = v_u_122.ScopeSwayDamper
+v_u_169.Knockback.s = v_u_122.ScopeKnockbackSpeed
+v_u_169.Knockback.d = v_u_122.ScopeKnockbackDamper
+v_u_169.CameraSpring.s = v_u_122.RecoilSpeed
+v_u_169.CameraSpring.d = v_u_122.RecoilDamper
+v_u_169.CrossScale.s = 10
+v_u_169.CrossScale.d = 0.8
+v_u_169.CrossScale.t = 1
+v_u_169.CrossSpring.s = 12
+v_u_169.CrossSpring.d = 0.65
+local function v_u_171(p170)
+	-- upvalues: (ref) v_u_140, (copy) v_u_15, (ref) v_u_20
+	if p170[1] == "Viewmodel" then
+		return v_u_140 and v_u_140:FindFirstChild(p170[2], true) or nil
+	end
+	if p170[1] == "Tool" then
+		return v_u_15:FindFirstChild(p170[2], true)
+	end
+	if p170[1] == "Character" then
+		return v_u_20:FindFirstChild(p170[2], true)
+	end
+end
+local function v_u_174()
+	-- upvalues: (copy) v_u_1, (ref) v_u_20, (copy) v_u_38, (ref) v_u_122
+	for _, v172 in pairs(v_u_1:GetTagged("Humanoids")) do
+		if v172.Parent ~= v_u_20 and v_u_38.CanDamage(v172.Parent, v_u_20, v_u_122.FriendlyFire) then
+			local v173 = Humanoids
+			table.insert(v173, v172)
+		end
+	end
+end
+local function v_u_193(p175, p176, p177, p178, p179, p180, p181)
+	-- upvalues: (copy) v_u_15, (copy) v_u_44, (ref) v_u_122, (copy) v_u_8, (copy) v_u_38, (ref) v_u_20
+	debug.profilebegin("CastRay_(GunClient_" .. v_u_15.Name .. ")")
+	local v182 = v_u_44(p179)
+	local v183 = v_u_122.IgnoreHumanoids
+	if p175 ~= "Beam" then
+		v183 = false
+	end
+	local v184 = Ray.new(p176, p177 * p178)
+	local v185 = p176 + p177 * p178
+	local v186 = Enum.Material.Air
+	local v187 = 0
+	local v188 = nil
+	local v189 = Vector3.new(0, 1, 0)
+	while v187 < 20 do
+		v187 = v187 + 1
+		v188, v185, v189, v186 = v_u_8:FindPartOnRayWithIgnoreList(v184, v182, false, p180)
+		if not v188 then
+			break
+		end
+		local v190 = v188:FindFirstAncestorOfClass("Model")
+		local v191
+		if v190 then
+			v191 = v190:FindFirstChildOfClass("Humanoid")
+		else
+			v191 = v190
+		e
